@@ -299,7 +299,7 @@ read_drive_params:
 ;; Read a sector from disk
 ; INP: 
 ;   ax: LBS
-;   cx: Sectors to read
+;   dl: Sectors to read
 ;   ES:BX - BufferAddressPointer
 ;
 read_drive_sector:
@@ -322,19 +322,16 @@ read_drive_sector:
     push dx
     push eS
     push si
-    push ds
 
-    
-    mov ah, 0x02
-    mov al, 0x01
-    mov ch, 0
-    mov cl, 2
-    mov dh, 0
-    mov dl, [BootDrive]
+    ; dl: Sectors to read
+    ; ax: LBA
+    call lba_to_chs ; IN: ax, OUT: dh(restores dl)
+    ; cx Cylinder, sector, dh drive head, dl STR
+    mov ah, 0x02        ; Code
+    mov al, dl          ; Sectors to read
+    mov dl, [BootDrive] ; Drive
 
-    xor bx, bx
-    mov es, bx
-    mov bx, 0x7E00 ; Sector after bootloader stage 1
+    ; ES:BX Already set
     int 13h
 
     jnc .success
@@ -347,7 +344,6 @@ read_drive_sector:
 
 .success:
 
-    pop ds
     pop si
     pop eS
     pop dx
